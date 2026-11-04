@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>GEF Cairo Content Board · CycleBreeze</title>
+<meta name="description" content="Every content idea for CycleBreeze at GEF 2026, Cairo: trends, sounds, pro posts, references and team status.">
+<meta name="theme-color" content="#fffaf3">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<header class="top">
+  <div class="brand">
+    <div>
+      <h1>GEF Cairo Content Board</h1>
+      <p class="sub">CycleBreeze · Global Entrepreneurship Festival · Nov 6–8 · JW Marriott Cairo</p>
+    </div>
+    <button id="menuBtn" class="iconbtn" aria-label="Settings and export">⋯</button>
+  </div>
+  <div class="progress" aria-live="polite">
+    <div class="bar" id="bar"></div>
+    <div class="counts" id="counts"></div>
+  </div>
+  <div id="sync" class="sync"></div>
+</header>
+
+<div class="tools">
+  <input id="q" type="search" placeholder="Search ideas, sounds, captions…" autocomplete="off" aria-label="Search">
+  <div class="chips" id="catChips" role="group" aria-label="Category"></div>
+  <div class="chips" id="phaseChips" role="group" aria-label="Phase"></div>
+  <div class="chips" id="moreChips" role="group" aria-label="More filters"></div>
+  <p class="showing" id="showing"></p>
+</div>
+
+<main id="list"></main>
+
+<dialog id="menu">
+  <form method="dialog" class="menu">
+    <h2>Board settings</h2>
+    <label>Your name (for "Mine" and who changed what)
+      <input id="myName" type="text" placeholder="e.g. Bunmi" autocomplete="name">
+    </label>
+    <p id="modeNote" class="note"></p>
+    <div class="row">
+      <button type="button" id="exportBtn" class="btn">Export JSON</button>
+      <label class="btn file">Import JSON<input type="file" id="importFile" accept="application/json"></label>
+    </div>
+    <p class="note">Legend: ⚠️ means not confirmed trending, or something to confirm before posting. A filled TikTok / IG button is a real example video. An outline "Search" button opens a search in the app.</p>
+    <button class="btn primary" value="close">Done</button>
+  </form>
+</dialog>
+
+<template id="cardT">
+  <article class="card">
+    <div class="meta"></div>
+    <button class="star" aria-label="Star this idea">☆</button>
+    <h3 class="title"></h3>
+    <p class="sound"></p>
+    <p class="hook"></p>
+    <p class="flag"></p>
+    <div class="refs"></div>
+    <details>
+      <summary>How to shoot</summary>
+      <div class="body"></div>
+    </details>
+    <div class="status" role="group" aria-label="Status"></div>
+    <div class="notes"><label><span>Notes &amp; links</span><textarea rows="2" placeholder="Your own ideas, script, location, extra reference links…"></textarea></label><div class="nlinks"></div></div>
+    <div class="assign">
+      <label><span>Assigned to</span><input class="who" list="people" placeholder="Name"></label>
+    </div>
+  </article>
+</template>
+<datalist id="people"></datalist>
+<script src="data.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
