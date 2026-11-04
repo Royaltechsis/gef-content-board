@@ -24,12 +24,23 @@ let shared=false; // true once server confirms key
 let state=LS("gef_state")||{};      // id -> {status,who,star,notes,t:{}}
 let queue=LS("gef_queue")||[];       // pending writes
 let me=LS("gef_me")||"";
-const f={cat:"",phase:"",who:"",status:"",star:false,mine:false,real:false,q:""};
+const f={cat:"",phase:"",who:"",status:"",star:false,mine:false,real:false,q:"",vibe:"",asg:"",refs:false,unassigned:false,sort:"default"};
 
+const VIBES=[["comedy","😂 Comedy",/comed|funny|joke|😂|skit|prank|pov|reaction|meme|bad boy|hobby|hideout|clocks out/i],
+ ["dance","💃 Dance",/danc|choreo|moves|groove|shaku|zanku|amapiano|legwork/i],
+ ["lipsync","🎤 Lip-sync / sound",/lip-?sync|same audio|use audio|mouth the|mime/i],
+ ["pov","👀 POV",/\bpov\b/i],
+ ["talk","🗣 Talking / interview",/interview|ask(ing)? (people|the team|my|coworkers)|explain|mic|vox|street|passing the phone|tell me/i],
+ ["vlog","🎬 Vlog / B-roll",/vlog|b-?roll|day in|travel|airport|packing|grwm|get ready|walk|cinematic|montage|reveal/i],
+ ["pro","💼 Professional",/linkedin|professional|announce|thrilled|honou?red|keynote|panel|lesson|insight/i]];
+const vcache={};
+function vibesOf(i){if(vcache[i.id])return vcache[i.id];const t=[L(i,"title"),L(i,"sound"),L(i,"hook"),L(i,"how"),i.cat,i.format].join(" ");
+  const v=VIBES.filter(x=>x[2].test(t)).map(x=>x[0]);if(i.cat==="Professional"&&!v.includes("pro"))v.push("pro");return vcache[i.id]=v;}
+function isRef(i){return /Bunmi's reference/.test(L(i,"note")||"")||!!i.custom;}
 function S(id){return state[id]||(state[id]={t:{}});}
 function L(i,k){const s=S(i.id);return (s[k]!==undefined&&s[k]!==null)?s[k]:i[k];}
 function stIdx(id){const s=S(id).status;const i=STATUSES.indexOf(s);return i<0?0:i;}
-function setField(id,field,val){const s=S(id);s[field]=val;s.t=s.t||{};s.t[field]=Date.now();LS("gef_state",state);
+function setField(id,field,val){delete vcache[id];const s=S(id);s[field]=val;s.t=s.t||{};s.t[field]=Date.now();LS("gef_state",state);
   queue.push({id,[field]:val,t:{[field]:s.t[field]},by:me});LS("gef_queue",queue);flush();renderTop();}
 
 let toastT;function toast(msg,undo){let t=document.getElementById("toast");if(!t){t=document.createElement("div");t.id="toast";document.body.appendChild(t);}
@@ -75,20 +86,39 @@ async function pull(){
 
 function chip(label,count,on,fn){const b=document.createElement("button");b.type="button";b.className="chip";b.setAttribute("aria-pressed",on?"true":"false");
   b.textContent=label;if(count!=null){const s=document.createElement("small");s.textContent=count;b.appendChild(s);}b.onclick=fn;return b;}
+function nActive(){let n=0;for(const k of ["cat","phase","who","status","vibe","asg"])if(f[k])n++;for(const k of ["star","mine","real","refs","unassigned"])if(f[k])n++;if(f.sort!=="default")n++;return n;}
+function clearF(){Object.assign(f,{cat:"",phase:"",who:"",status:"",star:false,mine:false,real:false,vibe:"",asg:"",refs:false,unassigned:false,sort:"default"});}
+function fill(id,list){const el=$(id);if(!el)return;el.innerHTML="";for(const c of list)el.appendChild(c);}
 function renderChips(){
-  const cc=$("#catChips");cc.innerHTML="";
-  cc.appendChild(chip("All",IT().length,!f.cat,()=>{f.cat="";render();}));
-  for(const c of CATS){const n=IT().filter(i=>i.cat===c).length;cc.appendChild(chip(c,n,f.cat===c,()=>{f.cat=f.cat===c?"":c;render();}));}
-  const pc=$("#phaseChips");pc.innerHTML="";
-  pc.appendChild(chip("Any phase",null,!f.phase,()=>{f.phase="";render();}));
-  for(const [k,l] of PHASES){pc.appendChild(chip(l,IT().filter(i=>i.phase===k).length,f.phase===k,()=>{f.phase=f.phase===k?"":k;render();}));}
-  const mc=$("#moreChips");mc.innerHTML="";
-  mc.appendChild(chip("★ Starred",null,f.star,()=>{f.star=!f.star;render();}));
-  mc.appendChild(chip("Mine",null,f.mine,()=>{if(!me){openMenu();return;}f.mine=!f.mine;render();}));
-  for(const w of ["solo","duo","team"]) mc.appendChild(chip(WHO[w],null,f.who===w,()=>{f.who=f.who===w?"":w;render();}));
-  for(let i=0;i<5;i++) mc.appendChild(chip(STATUSES[i],null,f.status===STATUSES[i],()=>{f.status=f.status===STATUSES[i]?"":STATUSES[i];render();}));
-  mc.appendChild(chip("Has real video",null,f.real,()=>{f.real=!f.real;render();}));
-  mc.appendChild(chip("🗑 Deleted",null,showDel,()=>{showDel=!showDel;render();}));
+  const all=IT();const cnt=fn=>all.filter(fn).length;
+  fill("#quickChips",[
+    chip("All",all.length,!nActive(),()=>{clearF();render();}),
+    chip("📌 Bunmi's refs",cnt(isRef),f.refs,()=>{f.refs=!f.refs;render();}),
+    chip("★ Starred",cnt(i=>S(i.id).star),f.star,()=>{f.star=!f.star;render();}),
+    chip("Not started",cnt(i=>stIdx(i.id)===0),f.status==="Idea",()=>{f.status=f.status==="Idea"?"":"Idea";render();}),
+    chip("😂 Comedy",cnt(i=>vibesOf(i).includes("comedy")),f.vibe==="comedy",()=>{f.vibe=f.vibe==="comedy"?"":"comedy";render();}),
+    chip("👥 Team",cnt(i=>i.who==="team"),f.who==="team",()=>{f.who=f.who==="team"?"":"team";render();}),
+    chip("🙋 Mine",null,f.mine,()=>{if(!me){openMenu();return;}f.mine=!f.mine;render();}),
+    chip("🆕 Newest first",null,f.sort==="new",()=>{f.sort=f.sort==="new"?"default":"new";render();})]);
+  fill("#sortChips",[["default","Board order"],["new","Newest first"],["star","Starred first"],["status","Least done first"],["az","A–Z"]].map(([k,l])=>chip(l,null,f.sort===k,()=>{f.sort=k;render();})));
+  fill("#vibeChips",VIBES.map(([k,l])=>chip(l,cnt(i=>vibesOf(i).includes(k)),f.vibe===k,()=>{f.vibe=f.vibe===k?"":k;render();})));
+  fill("#catChips",CATS.map(c=>chip(c,cnt(i=>i.cat===c),f.cat===c,()=>{f.cat=f.cat===c?"":c;render();})));
+  fill("#statusChips",STATUSES.map((s,k)=>chip(s,cnt(i=>stIdx(i.id)===k),f.status===s,()=>{f.status=f.status===s?"":s;render();})));
+  fill("#whoChips",["solo","duo","team"].map(w=>chip(WHO[w],cnt(i=>i.who===w),f.who===w,()=>{f.who=f.who===w?"":w;render();})));
+  const ppl=[...new Set(Object.values(state).map(x=>x&&x.who).filter(Boolean).map(x=>x.trim()))].sort();
+  fill("#asgChips",[chip("Unassigned",cnt(i=>!(S(i.id).who||"").trim()),f.unassigned,()=>{f.unassigned=!f.unassigned;f.asg="";render();})].concat(ppl.map(p=>chip(p,cnt(i=>(S(i.id).who||"").trim().toLowerCase()===p.toLowerCase()),f.asg.toLowerCase()===p.toLowerCase(),()=>{f.asg=f.asg===p?"":p;f.unassigned=false;render();}))));
+  fill("#phaseChips",PHASES.map(([k,l])=>chip(l,cnt(i=>i.phase===k),f.phase===k,()=>{f.phase=f.phase===k?"":k;render();})));
+  fill("#moreChips",[chip("Has real video",null,f.real,()=>{f.real=!f.real;render();}),chip("🗑 Deleted",null,showDel,()=>{showDel=!showDel;render();})]);
+  const n=nActive();$("#fCount").textContent=n?String(n):"";
+  // active pills
+  const act=[];const pill=(t,fn)=>{const b=document.createElement("button");b.type="button";b.className="apill";b.textContent=t+" ✕";b.onclick=()=>{fn();render();};act.push(b);};
+  if(f.refs)pill("Bunmi's refs",()=>f.refs=false);if(f.star)pill("Starred",()=>f.star=false);if(f.mine)pill("Mine",()=>f.mine=false);
+  if(f.vibe)pill(VIBES.find(v=>v[0]===f.vibe)[1],()=>f.vibe="");if(f.cat)pill(f.cat,()=>f.cat="");if(f.status)pill(f.status,()=>f.status="");
+  if(f.who)pill(WHO[f.who],()=>f.who="");if(f.asg)pill("Assigned: "+f.asg,()=>f.asg="");if(f.unassigned)pill("Unassigned",()=>f.unassigned=false);
+  if(f.phase)pill(PH[f.phase],()=>f.phase="");if(f.real)pill("Has real video",()=>f.real=false);if(f.sort!=="default")pill("Sort: "+({new:"Newest",star:"Starred",status:"Least done",az:"A–Z"}[f.sort]),()=>f.sort="default");
+  if(showDel)pill("Deleted",()=>showDel=false);
+  if(act.length>1){const c=document.createElement("button");c.type="button";c.className="apill clr";c.textContent="Clear all";c.onclick=()=>{clearF();showDel=false;render();};act.push(c);}
+  fill("#activeF",act);
 }
 function renderTop(){
   const counts=[0,0,0,0,0];for(const i of IT())counts[stIdx(i.id)]++;
@@ -111,6 +141,10 @@ function match(i){
   if(f.star&&!s.star)return false;
   if(f.mine&&(s.who||"").trim().toLowerCase()!==me.trim().toLowerCase())return false;
   if(f.real&&!(L(i,"tt")||L(i,"ig")))return false;
+  if(f.vibe&&!vibesOf(i).includes(f.vibe))return false;
+  if(f.refs&&!isRef(i))return false;
+  if(f.asg&&(s.who||"").trim().toLowerCase()!==f.asg.toLowerCase())return false;
+  if(f.unassigned&&(s.who||"").trim())return false;
   if(f.q){const hay=[L(i,"title"),L(i,"sound"),L(i,"hook"),L(i,"how"),L(i,"says"),i.format,i.cat,L(i,"flag"),s.who,s.notes,L(i,"shoot")].join(" ").toLowerCase();
     if(!f.q.toLowerCase().split(/\s+/).every(w=>hay.includes(w)))return false;}
   return true;
@@ -185,8 +219,12 @@ let lastSig="";
 function render(soft){
   renderChips();renderTop();
   const list=$("#list");
-  const shown=IT().filter(match);
-  $("#showing").textContent="Showing "+shown.length+" of "+IT().length+(f.q||f.cat||f.phase||f.who||f.status||f.star||f.mine||f.real?" · tap a chip again to clear":"");
+  let shown=IT().filter(match);
+  if(f.sort!=="default"){const base=IT().map(i=>i.id);const ix=id=>base.indexOf(id);
+    const tsOf=i=>i.custom?parseInt(i.id.slice(1),36):(i.cat==="Our ideas"?1e12+(+i.num||0):0);
+    const cmp={new:(a,b)=>tsOf(b)-tsOf(a)||ix(b.id)-ix(a.id),star:(a,b)=>(!!S(b.id).star-!!S(a.id).star)||ix(a.id)-ix(b.id),status:(a,b)=>stIdx(a.id)-stIdx(b.id)||ix(a.id)-ix(b.id),az:(a,b)=>String(L(a,"title")||"").localeCompare(String(L(b,"title")||""))}[f.sort];
+    shown=shown.slice().sort(cmp);}
+  $("#showing").textContent="Showing "+shown.length+" of "+IT().length;
   if(soft){ // keep focus/open details
     const act=document.activeElement;if(act&&list.contains(act)&&(act.tagName==="INPUT"||act.tagName==="TEXTAREA"))return;
   }
@@ -209,6 +247,9 @@ $("#importFile").onchange=async e=>{const file=e.target.files[0];if(!file)return
 window.addEventListener("online",()=>{flush();pull();});
 setInterval(()=>{flush();if(document.visibilityState==="visible")pull();},20000);
 document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="visible")pull();});
+$("#fBtn").onclick=()=>{const p=$("#fPanel");p.hidden=!p.hidden;$("#fBtn").setAttribute("aria-expanded",String(!p.hidden));};
+$("#fDone").onclick=()=>{$("#fPanel").hidden=true;$("#fBtn").setAttribute("aria-expanded","false");window.scrollTo({top:0,behavior:"smooth"});};
+$("#fClear").onclick=()=>{clearF();showDel=false;render();};
 const nb_=document.createElement("button");nb_.type="button";nb_.id="newIdea";nb_.textContent="＋ New idea";nb_.setAttribute("aria-label","Add a new idea");
 nb_.onclick=()=>{const id="c"+Date.now().toString(36);setField(id,"isnew",true);showDel=false;f.cat="";f.q="";const qq=$("#q");if(qq)qq.value="";render();
   setTimeout(()=>{const c=document.querySelector('.card[data-id="'+id+'"]');if(c){c.scrollIntoView({behavior:"smooth",block:"center"});const t=c.querySelector(".editidea input");if(t)t.focus();}},80);};
