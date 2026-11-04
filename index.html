@@ -25,10 +25,23 @@
 </header>
 
 <div class="tools">
-  <input id="q" type="search" placeholder="Search ideas, sounds, captions…" autocomplete="off" aria-label="Search">
-  <div class="chips" id="catChips" role="group" aria-label="Category"></div>
-  <div class="chips" id="phaseChips" role="group" aria-label="Phase"></div>
-  <div class="chips" id="moreChips" role="group" aria-label="More filters"></div>
+  <div class="srow">
+    <input id="q" type="search" placeholder="Search ideas, sounds, captions…" autocomplete="off" aria-label="Search">
+    <button id="fBtn" type="button" class="fbtn" aria-expanded="false">Filters <b id="fCount"></b></button>
+  </div>
+  <div class="chips quick" id="quickChips" role="group" aria-label="Quick filters"></div>
+  <div class="active" id="activeF"></div>
+  <div class="fpanel" id="fPanel" hidden>
+    <h4>Sort</h4><div class="chips wrap" id="sortChips"></div>
+    <h4>Type of video</h4><div class="chips wrap" id="vibeChips"></div>
+    <h4>Category</h4><div class="chips wrap" id="catChips"></div>
+    <h4>Status</h4><div class="chips wrap" id="statusChips"></div>
+    <h4>Who's in it</h4><div class="chips wrap" id="whoChips"></div>
+    <h4>Assigned to</h4><div class="chips wrap" id="asgChips"></div>
+    <h4>When</h4><div class="chips wrap" id="phaseChips"></div>
+    <h4>More</h4><div class="chips wrap" id="moreChips"></div>
+    <div class="frow"><button type="button" id="fClear" class="btn">Clear all</button><button type="button" id="fDone" class="btn primary">Show results</button></div>
+  </div>
   <p class="showing" id="showing"></p>
 </div>
 
