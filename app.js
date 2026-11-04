@@ -32,6 +32,10 @@ function stIdx(id){const s=S(id).status;const i=STATUSES.indexOf(s);return i<0?0
 function setField(id,field,val){const s=S(id);s[field]=val;s.t=s.t||{};s.t[field]=Date.now();LS("gef_state",state);
   queue.push({id,[field]:val,t:{[field]:s.t[field]},by:me});LS("gef_queue",queue);flush();renderTop();}
 
+let toastT;function toast(msg,undo){let t=document.getElementById("toast");if(!t){t=document.createElement("div");t.id="toast";document.body.appendChild(t);}
+  t.innerHTML="";const s=document.createElement("span");s.textContent=msg;t.appendChild(s);
+  if(undo){const b=document.createElement("button");b.type="button";b.textContent="Undo";b.onclick=()=>{undo();t.classList.remove("on");};t.appendChild(b);}
+  t.classList.add("on");clearTimeout(toastT);toastT=setTimeout(()=>t.classList.remove("on"),5000);}
 function syncMsg(txt,warn){const el=$("#sync");el.textContent=txt;el.className="sync"+(warn?" warn":"");}
 let flushing=false;
 async function flush(){
@@ -128,6 +132,9 @@ function card(i){
   for(const [t,c] of pills){const p=document.createElement("span");p.className=c;p.textContent=t;m.appendChild(p);}
   const star=n.querySelector(".star");const paint=()=>{star.textContent=S(i.id).star?"★":"☆";star.classList.toggle("on",!!S(i.id).star);star.setAttribute("aria-pressed",S(i.id).star?"true":"false");};paint();
   star.onclick=()=>{setField(i.id,"star",!S(i.id).star);paint();};
+  const qd=n.querySelector(".qdel");
+  if(showDel){qd.textContent="↩";qd.setAttribute("aria-label","Restore this idea");qd.onclick=()=>{setField(i.id,"del",false);render();toast("Restored");};}
+  else qd.onclick=()=>{setField(i.id,"del",true);n.remove();renderTop();toast("Deleted",()=>{setField(i.id,"del",false);render();});};
   n.querySelector(".title").textContent=L(i,"title")||"New idea (tap ✏️ to fill)";
   const snd=n.querySelector(".sound");if(L(i,"sound")&&i.cat!=="Professional"&&i.cat!=="Trip idea")snd.textContent="🎵 "+L(i,"sound");else snd.remove();
   const hk=n.querySelector(".hook");
@@ -157,7 +164,7 @@ function card(i){
     sel.onchange=()=>{setField(i.id,"kind",sel.value);render(true);};row.appendChild(lb);row.appendChild(sel);ee.appendChild(row);}
   const dr=document.createElement("div");dr.className="erow";const db=document.createElement("button");db.type="button";db.className="edel";
   if(showDel){db.textContent="↩ Restore this idea";db.className="erest";db.onclick=()=>{setField(i.id,"del",false);render();};}
-  else{db.textContent="🗑 Delete this idea";db.onclick=()=>{if(confirm("Delete this idea for the whole team? (You can restore it from the Deleted filter.)")){setField(i.id,"del",true);render();}};}
+  else{db.textContent="🗑 Delete this idea";db.onclick=()=>{setField(i.id,"del",true);render();toast("Deleted",()=>{setField(i.id,"del",false);render();});};}
   dr.appendChild(db);ee.appendChild(dr);
   ed.after(ee);
   const body=n.querySelector(".body");
