@@ -24,7 +24,7 @@ let shared=false; // true once server confirms key
 let state=LS("gef_state")||{};      // id -> {status,who,star,notes,t:{}}
 let queue=LS("gef_queue")||[];       // pending writes
 let me=LS("gef_me")||"";
-const f={cat:"",phase:"",who:"",status:"",star:false,mine:false,real:false,q:"",vibe:"",asg:"",refs:false,unassigned:false,sort:"default"};
+const f={cat:"",phase:"",who:"",status:"",star:false,mine:false,real:false,q:"",vibe:"",asg:"",refs:false,unassigned:false,unstar:false,sort:"default"};
 
 const VIBES=[["comedy","😂 Comedy",/comed|funny|joke|😂|skit|prank|pov|reaction|meme|bad boy|hobby|hideout|clocks out/i],
  ["dance","💃 Dance",/danc|choreo|moves|groove|shaku|zanku|amapiano|legwork/i],
@@ -86,15 +86,16 @@ async function pull(){
 
 function chip(label,count,on,fn){const b=document.createElement("button");b.type="button";b.className="chip";b.setAttribute("aria-pressed",on?"true":"false");
   b.textContent=label;if(count!=null){const s=document.createElement("small");s.textContent=count;b.appendChild(s);}b.onclick=fn;return b;}
-function nActive(){let n=0;for(const k of ["cat","phase","who","status","vibe","asg"])if(f[k])n++;for(const k of ["star","mine","real","refs","unassigned"])if(f[k])n++;if(f.sort!=="default")n++;return n;}
-function clearF(){Object.assign(f,{cat:"",phase:"",who:"",status:"",star:false,mine:false,real:false,vibe:"",asg:"",refs:false,unassigned:false,sort:"default"});}
+function nActive(){let n=0;for(const k of ["cat","phase","who","status","vibe","asg"])if(f[k])n++;for(const k of ["star","unstar","mine","real","refs","unassigned"])if(f[k])n++;if(f.sort!=="default")n++;return n;}
+function clearF(){Object.assign(f,{cat:"",phase:"",who:"",status:"",star:false,mine:false,real:false,vibe:"",asg:"",refs:false,unassigned:false,unstar:false,sort:"default"});}
 function fill(id,list){const el=$(id);if(!el)return;el.innerHTML="";for(const c of list)el.appendChild(c);}
 function renderChips(){
   const all=IT();const cnt=fn=>all.filter(fn).length;
   fill("#quickChips",[
     chip("All",all.length,!nActive(),()=>{clearF();render();}),
     chip("📌 Bunmi's refs",cnt(isRef),f.refs,()=>{f.refs=!f.refs;render();}),
-    chip("★ Starred",cnt(i=>S(i.id).star),f.star,()=>{f.star=!f.star;render();}),
+    chip("★ Starred",cnt(i=>S(i.id).star),f.star,()=>{f.star=!f.star;if(f.star)f.unstar=false;render();}),
+    chip("☆ Unstarred",cnt(i=>!S(i.id).star),f.unstar,()=>{f.unstar=!f.unstar;if(f.unstar)f.star=false;render();}),
     chip("Not started",cnt(i=>stIdx(i.id)===0),f.status==="Idea",()=>{f.status=f.status==="Idea"?"":"Idea";render();}),
     chip("😂 Comedy",cnt(i=>vibesOf(i).includes("comedy")),f.vibe==="comedy",()=>{f.vibe=f.vibe==="comedy"?"":"comedy";render();}),
     chip("👥 Team",cnt(i=>i.who==="team"),f.who==="team",()=>{f.who=f.who==="team"?"":"team";render();}),
@@ -108,11 +109,11 @@ function renderChips(){
   const ppl=[...new Set(Object.values(state).map(x=>x&&x.who).filter(Boolean).map(x=>x.trim()))].sort();
   fill("#asgChips",[chip("Unassigned",cnt(i=>!(S(i.id).who||"").trim()),f.unassigned,()=>{f.unassigned=!f.unassigned;f.asg="";render();})].concat(ppl.map(p=>chip(p,cnt(i=>(S(i.id).who||"").trim().toLowerCase()===p.toLowerCase()),f.asg.toLowerCase()===p.toLowerCase(),()=>{f.asg=f.asg===p?"":p;f.unassigned=false;render();}))));
   fill("#phaseChips",PHASES.map(([k,l])=>chip(l,cnt(i=>i.phase===k),f.phase===k,()=>{f.phase=f.phase===k?"":k;render();})));
-  fill("#moreChips",[chip("Has real video",null,f.real,()=>{f.real=!f.real;render();}),chip("🗑 Deleted",null,showDel,()=>{showDel=!showDel;render();})]);
+  fill("#moreChips",[chip("★ Starred",cnt(i=>S(i.id).star),f.star,()=>{f.star=!f.star;if(f.star)f.unstar=false;render();}),chip("☆ Unstarred",cnt(i=>!S(i.id).star),f.unstar,()=>{f.unstar=!f.unstar;if(f.unstar)f.star=false;render();}),chip("Has real video",null,f.real,()=>{f.real=!f.real;render();}),chip("🗑 Deleted",null,showDel,()=>{showDel=!showDel;render();})]);
   const n=nActive();$("#fCount").textContent=n?String(n):"";
   // active pills
   const act=[];const pill=(t,fn)=>{const b=document.createElement("button");b.type="button";b.className="apill";b.textContent=t+" ✕";b.onclick=()=>{fn();render();};act.push(b);};
-  if(f.refs)pill("Bunmi's refs",()=>f.refs=false);if(f.star)pill("Starred",()=>f.star=false);if(f.mine)pill("Mine",()=>f.mine=false);
+  if(f.refs)pill("Bunmi's refs",()=>f.refs=false);if(f.star)pill("Starred",()=>f.star=false);if(f.unstar)pill("Unstarred",()=>f.unstar=false);if(f.mine)pill("Mine",()=>f.mine=false);
   if(f.vibe)pill(VIBES.find(v=>v[0]===f.vibe)[1],()=>f.vibe="");if(f.cat)pill(f.cat,()=>f.cat="");if(f.status)pill(f.status,()=>f.status="");
   if(f.who)pill(WHO[f.who],()=>f.who="");if(f.asg)pill("Assigned: "+f.asg,()=>f.asg="");if(f.unassigned)pill("Unassigned",()=>f.unassigned=false);
   if(f.phase)pill(PH[f.phase],()=>f.phase="");if(f.real)pill("Has real video",()=>f.real=false);if(f.sort!=="default")pill("Sort: "+({new:"Newest",star:"Starred",status:"Least done",az:"A–Z"}[f.sort]),()=>f.sort="default");
@@ -139,6 +140,7 @@ function match(i){
   if(f.who&&!(i.who===f.who||(i.who==="any"&&f.who!=="duo")))return false;
   if(f.status&&STATUSES[stIdx(i.id)]!==f.status)return false;
   if(f.star&&!s.star)return false;
+  if(f.unstar&&s.star)return false;
   if(f.mine&&(s.who||"").trim().toLowerCase()!==me.trim().toLowerCase())return false;
   if(f.real&&!(L(i,"tt")||L(i,"ig")))return false;
   if(f.vibe&&!vibesOf(i).includes(f.vibe))return false;
