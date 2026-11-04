@@ -89,3 +89,11 @@ dialog::backdrop{background:rgba(30,20,10,.35)}
 .editidea textarea,.editidea input,.editidea select{width:100%;font:inherit;font-size:16px;padding:10px;border:1px solid #d4d4d8;border-radius:10px;box-sizing:border-box;min-height:44px}
 .erest{min-height:44px;padding:0 14px;border-radius:10px;border:1px solid #16a34a;color:#16a34a;background:#fff;font-weight:600}
 #newIdea{position:fixed;right:16px;bottom:calc(16px + env(safe-area-inset-bottom));z-index:50;min-height:52px;padding:0 20px;border:0;border-radius:26px;background:#7c3aed;color:#fff;font-size:16px;font-weight:700;box-shadow:0 6px 18px rgba(0,0,0,.25)}
+
+.card{position:relative}
+.qdel{position:absolute;top:10px;right:56px;width:44px;height:44px;border:0;border-radius:12px;background:#fee2e2;font-size:20px;line-height:44px;padding:0;cursor:pointer}
+.qdel:active{transform:scale(.92)}
+#toast{position:fixed;left:50%;bottom:calc(84px + env(safe-area-inset-bottom));transform:translateX(-50%) translateY(20px);opacity:0;pointer-events:none;transition:.2s;z-index:60;background:#111827;color:#fff;border-radius:14px;padding:10px 14px;display:flex;gap:14px;align-items:center;font-size:15px;box-shadow:0 6px 18px rgba(0,0,0,.3)}
+#toast.on{opacity:1;transform:translateX(-50%);pointer-events:auto}
+#toast button{background:none;border:0;color:#a78bfa;font-weight:700;font-size:15px;min-height:36px}
+.card .meta{padding-right:104px}
